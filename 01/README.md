@@ -106,7 +106,9 @@ func JSONResponse(w http.ResponseWriter, r *http.Request, h func(w http.Response
 ```
 
 Nice, it works with any handler! However now it cannot replace a http handler as the signature is different. The main
-requirement is we need to end up with a `func(w http.ResponseWriter, r *http.Request)` in our hands.
+requirement is we need to end up with a `func(w http.ResponseWriter, r *http.Request)` in our hands. Thus we need a
+funtion wich receives a http handler and returns another http handler, what lead us to a signature like
+`func(func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request)`
 
 
 
