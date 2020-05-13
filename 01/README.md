@@ -72,6 +72,45 @@ Now let's implement a handler which logs the request http method, URL, and heade
 body `{"hello":"world"}`. On [handlers_test.go](handlers_test.go) there is the skeleton of a test for our handler. 
 For simplicity, we'll only assert the response's status code and body.
 
+
+### Middlewares
+
+A loose definition for a http middleware is some function which sits before or after your handler being invoked, which 
+is able to modify the request and the response. Bear in mind only one call to the `ResponseWriter.Write` is allowed
+(there are exceptions, but let's keep it simple), therefore a middleware should not call `Write`. There are ways
+to bypass it, but again, let's keep it simple. A visual representation of middlewares is: 
+incoming request => middleware => your handler => middleware.
+
+Let's build a middleware step by step. Our middleware will set the content type of the response to `application/json`,
+and we'll call it `JSONResponse`. In order to receive a request our middleware must look like a handler, so it'll have
+the same signature as a http handler.
+
+```go
+func Handler(w http.ResponseWriter, r *http.Request) {
+    // do stuff...
+}
+
+func JSONResponse(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	Handler(w, r)
+}
+```
+
+It solves our problem, however it isn't quite flexible. Ideally our middleware is able to work with any handler, so it
+needs to receive the handler as well. If we receive a handler as a parameter we'd have:
+```go
+func JSONResponse(w http.ResponseWriter, r *http.Request, h func(w http.ResponseWriter, r *http.Request)) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	h(w, r)
+}
+```
+
+Nice, it works with any handler! However now it cannot replace a http handler as the signature is different. The main
+requirement is we need to end up with a `func(w http.ResponseWriter, r *http.Request)` in our hands.
+
+
+
+
 ### (WIP) http.Server
 Start the http server is as easy as:
 
