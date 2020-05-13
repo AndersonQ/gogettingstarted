@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	handlers "github.com/AndersonQ/gogettingstarted/01/solution"
 )
 
 func TestHandler(t *testing.T) {
@@ -19,7 +17,7 @@ func TestHandler(t *testing.T) {
 	w := httptest.NewRecorder()
 	w.Body = buff
 
-	handlers.Handler(w, r)
+	Handler(w, r)
 
 	responseCode := w.Code
 	body := w.Body.String()
