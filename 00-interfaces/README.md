@@ -2,10 +2,10 @@
 
 ## Methods
 
-Lacking formality, a method is a function attached to a type and the method has access to the type instance
-on which it was called. It's possible to add methods to almost any type in Go. The type which the method is attached to
-is called receiver, and the receiver is, by convention, named after the first letter of the type. Let's see them to make
-it clear.
+Informally, a method is a function attached to a type, and the method has access to the type instance
+on which it was called. It's possible to add methods to almost any type in Go. The instance which the method is attached to
+is called receiver, and the receiver is, by convention, named after the first letter of the type. Let's write some code
+them to make it clear.
 
 Given the following function
 ```go
@@ -13,8 +13,7 @@ func Hello(name string) string {
     return fmt.Sprintf("Hello,", name)
 }
 ```
-
-We can have it on a type holding the name and just call `Hello()`
+let's turn it into a method, _"attach"_ it on a type holding the name and just call `Hello()`
 
 ```go
 type Person struct {
@@ -26,13 +25,15 @@ func (p Person) Hello() string {
 }
 ```
 
-We can think `(p Person)` as one parameter passed to the method `Hello()`, the `Person` instance in which the method
-`Hello()` is invoked. In Python, we see it quite clear, a class method has got `self` as its first parameter, which 
+In the snipped above `p` is the receiver, we can think `(p Person)` as one parameter passed to the method `Hello()`. 
+The receiver is the `Person` instance in which the method`Hello()` is invoked.
+
+In Python, we see it quite clearly, a method has got `self` as its first parameter, which 
 is the object on which the method is being called. In Java there is the `this` which is not explicitly declared, but is
-also the obeject in which the method is invoked. Go, I'd say, sits in between them, there is an explicit declaration of
+also the object in which the method is invoked. Go, I'd say, sits in between them, there is an explicit declaration of
 the instance in which the method is called, but it doesn't appear in the method's parameter list.
 
-Below both implementations of `Hello` need an instance of `Person` and yield the same result.
+Below both implementations of `Hello` require an instance of `Person` and yield the same result.
 
 ```go
 
@@ -46,8 +47,7 @@ func Hello(p Person) string {
 ```
 
 Looking at these two implementations of `Hello` helps to understand the reason any change a method does on its receiver
-only affects the instance in which the method is invoked if, and only if, the receiver is a pointer. Bellow we see it
-in practice.
+only affects the instance in which the method is invoked if the receiver is a pointer. Bellow we see it in practice.
 
 ```go
 func (p Person) Hello() {
@@ -89,7 +89,7 @@ func main() {
 }
 ```
 
-Go is nice and let us add functions to almost any type, so we can do:
+Go is nice and let us add methods to almost any type, so we can do:
 
 ```go
 type Name string
@@ -105,7 +105,7 @@ func main() {
 }
 ```
 
-For the `Person` struct the receiver `p` is the struct itself, the same for `Name`, the receiver `n` is the instance of
+For the `Person` struct, the receiver `p` is the struct itself, the same for `Name`, the receiver `n` is the instance of
 `Name` in which `Hello()` is invoked.
 
 It might feel odd, but even functions can have methods:
@@ -114,7 +114,7 @@ It might feel odd, but even functions can have methods:
 // Surname is a function which receives zero parameters and returns a string
 type Surname func() string
 
-// To create a function of type Surname we can:
+// Doe has got the same signature as the Surname type
 func Doe() string {
     return "Doe"
 }
@@ -131,8 +131,6 @@ func main() {
 	//Output: Doe
 }
 ```
-
-With this all and interfaces, which is explained next, we'll be able to do some quite nice stuff.
  
 ## Interfaces
 
@@ -140,7 +138,7 @@ Having defined a method we can talk about interfaces, quoting Effective Go:
 > Interfaces in Go provide a way to specify the behavior of an object: 
 if something can do _this_, then it can be used _here_.
 
-If you understand a method is a behaviour, the quote above makes a lot of sense. An Interface defines some methods and
+If you consider a method as a behaviour, the quote above makes a lot of sense. An Interface defines some methods and
 whichever type implements these methods, implements the interface. 
 
 Our `Hello() string` can be an interface:
@@ -171,32 +169,46 @@ import (
 	"fmt"
 )
 
+type Helloer interface {
+	Hello() string
+}
+
+func SayHello(h Helloer) {
+	fmt.Println(h.Hello())
+}
+
 type Person struct{ Name string }
 
-func (p Person) Hello() string { return fmt.Sprint("Hello, ", p.Name) }
+func (p Person) Hello() string {
+	return fmt.Sprint("Hello, ", p.Name)
+}
 
 type Name string
 
-func (n Name) Hello() string { return fmt.Sprint("Hello, ", n) }
+func (n Name) Hello() string {
+	return fmt.Sprint("Hello, ", n)
+}
 
 type Surname func() string
 
-func (s Surname) Hello() string { return fmt.Sprint("Hello, ", s()) }
-
-type Helloer interface{ Hello() string }
-
-func SayHello(h Helloer) { fmt.Println(h.Hello()) }
+func (s Surname) Hello() string {
+	return fmt.Sprint("Hello, ", s())
+}
 
 func main() {
 	p := Person{Name: "John Doe"}
-	n := Name("John")
-	s := Surname(func() string { return "Doe" })
 	SayHello(p)
-	SayHello(n)
-	SayHello(s)
 	// Output:
 	// Hello, John Doe
+
+	n := Name("John")
+	SayHello(n)
+	// Output:
 	// Hello, John
+
+	s := Surname(func() string { return "Doe" })
+	SayHello(s)
+	// Output:
 	// Hello, Doe
 }
 ```
