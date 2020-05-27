@@ -1,14 +1,12 @@
-# HTTP handler and middlewares
-
-## Handling http requests
+# Handling HTTP requests
 
 A `http.Handler` is the interface which will receives a request, process it and returns, better saying, _writes_ 
 a response. Before diving into the `http.Handler` type, let's have a look at the http request and response, they are
 `http.Request` and `http.ResponseWriter` respectively.
 
-### `http.Request`
+## `http.Request`
 
-It is the incoming or outcoming request. It's a struct, and some of its fields are shown below. Check the documentation
+It is the http incoming or outcoming request. It's a struct, and some of its fields are shown below. Check the documentation
 (a.k.a. the source code) for the formal definition, here I'll summarise what we need for now.
 
 ```go
@@ -37,7 +35,7 @@ func (r *Request) Context() context.Context
 func (r *Request) WithContext(ctx context.Context) *http.Request
 ```
 
-### `http.ResponseWriter`
+## `http.ResponseWriter`
 
 It's an interface, different from the request, and again I'll summarise what we need for now, check the documentation
 for the proper definitions.
@@ -59,72 +57,22 @@ type ResponseWriter interface {
 }
 ```
 
-### Handling a request
+## Handling a request
 
 Given we have an incoming request, and we can write a response, we can write a function which receives a request and 
 writes a response. Let's define `func(w http.ResponseWriter, r *http.Request)` as the signature of our function. As you
-might have noticed it does not have a return value. We have to call `Write` on `w` to send the response and, ~ideally~
+might have noticed it does return a value. We have to call `Write` on `w` to send the response and, ~ideally~
 after to have handled the error `Write` might return, finish the function.
 
 Now let's implement a handler which logs the request http method, URL, and headers, reply with a status code `418` and a
-body `{"hello":"world"}`. On [handlers_test.go](handlers_test.go) there is the skeleton of a test for our handler. 
+body `{"hello":"world"}`. On [handlers.go](handlers.go) there is the skeleton of a handler and on
+[handlers_test.go](handlers_test.go) there is the test for it. 
 For simplicity, we'll only assert the response's status code and body.
-
-
-## Middlewares
-
-A loose definition for a http middleware is some function which sits before or after your handler being invoked, which 
-is able to access the request and the response. Bear in mind only one call to the `ResponseWriter.Write` is allowed
-(there are exceptions, but let's keep it simple), therefore a middleware should not call `Write`. There are ways
-to bypass it, but again, let's keep it simple. A visual representation of a middleware is:
-
-```text
-incoming request => middleware => your handler => middleware.
-```
-
-Let's build a middleware step by step. Our middleware will set the content type of the response to `application/json`,
-and we'll call it `JSONResponse`. In order to receive a request our middleware must look like a handler, so it needs to
-have the same signature as a http handler.
-
-```go
-func Handler(w http.ResponseWriter, r *http.Request) {
-    // do stuff...
-}
-
-func JSONResponse(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	Handler(w, r)
-}
-```
-
-It solves our problem, however it isn't quite flexible. Ideally our middleware is able to work with any handler, so it
-needs to receive the handler as well. If we receive a handler as a parameter we'd have:
-```go
-func JSONResponse(w http.ResponseWriter, r *http.Request, h func(w http.ResponseWriter, r *http.Request)) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	h(w, r)
-}
-```
-
-Nice, it works with any handler! However now it cannot replace a http handler as the signature is different. The main
-requirement is we need to end up with a `func(w http.ResponseWriter, r *http.Request)` in our hands. Thus, we need a
-function which receives a http handler and returns another http handler, what lead us to the following signature:
-```go
-func( func(w http.ResponseWriter, r *http.Request) ) func(w http.ResponseWriter, r *http.Request)
-```
-
-It might look a bit scary, or just a way to many `func` in the same line, but it's simple. We have a function which
-receives a function as its only parameter and returns another function. Now head to [middlewares.go](middlewares.go)
-and implement `TrackingID`, a middleware which reads the http header `X-TrackingId` and adds the tracking id to the context. For now,
-you don't need to worry about working with contexts, on [context.go](context.go) you'll find 
-`ContextWithID(id string) context.Context` which will take care of dealing with the context for you. On 
-[middlewares_test.go](middlewares_test.go) there is a test for the middleware you'll build.
-
 
 ## The `http.Handler`
 
 We have defined our http handler as any function with the following signature `func(w http.ResponseWriter, r *http.Request)`.
-Let's be honest, it's neither convenient nor quite intuitive. In Go a http handler is:
+Let's be honest, it's neither convenient nor quite intuitive. In Go the `http.Handler` interface is:
 
 ```go
 type Handler interface {
@@ -132,9 +80,10 @@ type Handler interface {
 }
 ```
 
-anything with a method `ServeHTTP(http.ResponseWriter, *http.Request)` automatically implements
-`http.Handler`. Whatever id dealing with http handlers will receive or return `http.Handler`.
-However, it isn't the most convenient to create a type just to implement one method.
+Any type with a method `ServeHTTP(http.ResponseWriter, *http.Request)` automatically implements
+`http.Handler`. Components dealing with http handlers receive or return a `http.Handler`.
+However, it isn't exactly convenient to create a type just to implement a one interface.
+
 Go have you covered and brings a helper type, the `http.HandlerFunc`, as its documentation
 states, _is an adapter to allow the use of ordinary functions as HTTP handlers_.
 Using `http.HandlerFunc` we can make any function `func(http.ResponseWriter, *http.Request)`
@@ -166,18 +115,19 @@ func main() {
 }
 ```
 You can run `go run demo/00/main.go` to see it in action.
-How does `http.HandlerFunc` does its magic? First let's see what it is:
+A question arises, how does `http.HandlerFunc` does its magic? First let's see what it is:
 
 ```go
 type HandlerFunc func(http.ResponseWriter, *http.Request)
 ```
 
-`http.HandlerFunc` is a function which receives a `http.ResponseWriter` and `*http.Request`,
-and does not return any value. It is possible to cast any function with the same
-signature to `http.HandlerFunc`, as our `handlerFunc` has this signature, we can
-cast it to `http.HandlerFunc` as well.
+`http.HandlerFunc` type is a function receiving two parameters, a `http.ResponseWriter`
+and `*http.Request`, and does not return any value. It is possible to cast any 
+function with the same signature to `http.HandlerFunc`, as our `handlerFunc` has 
+this signature, we can cast it to `http.HandlerFunc`.
 
-Now let's build our own `http.HandlerFunc` from our `handler`, we had:
+Now let's build our own `http.HandlerFunc` from our `handler`, to fully 
+understand the trick. We had:
 
 ```go
 type handler struct{}
@@ -211,7 +161,7 @@ to `handler`:
 
 	// Output:
 	// {"hello":"handlerFunc"}
-	// {"hello":""handler.ServeHTTP"}
+	// {"hello":"handler.ServeHTTP"}
 ```
 
 Run `go run demo/01/main.go` to see for yourself.
@@ -243,53 +193,7 @@ Finally, now our `handler` works just as `http.Handler` does!
 	// Output:
 	// {"hello":"handlerFunc"}
 	// {"hello":"handlerFunc"}
-	// {"hello":""handlerFunc"}
+	// {"hello":"handlerFunc"}
 ```
 
-Try running `go run demo/02/main.go`
-
-TODO: middleware like func (...) func(http.Handler) http.Handler
-Another common need when defining a middleware is to pass some parameters to the middleware,
-
-
-
-### (WIP) http.Server
-
-Go provides out of the box a production ready and easy to use http server, 
-the [`http.Server`](https://golang.org/pkg/net/http/#Server). Tl;dr it's a struct, we'll
-focus on how to add a handler for requests, a few of its fields to configure the server and on 
-`func (*Server) ListenAndServe` which starts the http server.
-
-Start the http server is as easy as:
-
-```go
-server := http.Server{}
-server.ListenAndServe()
-```
-
-It doesn't do much right now, obviously we are missing a few things, define some routes and their handlers, 
-set a timeout and handle the error returned by `ListenAndServe`.
-
-First the error, let's keep it simple
-
-```go 
-server := http.Server{}
-if err := server.ListenAndServe(); err!= nil {
-    panic("ListenAndServe returne")
-}
-```
-
-We'll set the `ReadTimeout` and `WriteTimeout`. The first is the maximum time for the server to read the request,
-including the body. The latter is the maximum time starting after the request headers have been read up to the end
-of the write of the response. Cloudflare's blog has got a 
-[nice article](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/) about the Go's http timeouts.
-
-```go
-server := http.Server{
-    ReadTimeout:  5 * time.Second,
-    WriteTimeout: 5 * time.Second,
-}
-if err := server.ListenAndServe(); err != nil {
-    panic("ListenAndServe returned: %v", err)
-}
-```
+Try running `go run demo/02/main.go` to see it in action.
