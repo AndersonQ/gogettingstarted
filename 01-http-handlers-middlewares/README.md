@@ -144,11 +144,11 @@ to implement `http.Handler`. Let's see some code.
 type handler struct{}
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte(`{"hello":"world"}`))
+	fmt.Println(`{"hello":"handler.ServeHTTP"}`)
 }
 
 func handlerFunc(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte(`{"hello":"world"}`))
+	fmt.Println(`{"hello":"handlerFunc"}`)
 }
 
 func main() {
@@ -161,11 +161,11 @@ func main() {
 	h2 = http.HandlerFunc(handlerFunc) // now it works!
 
 	h3 = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"hello":"world"}`))
+		fmt.Println(`{"hello":"anonymous func"}`)
 	}) // it also works!
 }
 ```
-
+You can run `go run demo/00/main.go` to see it in action.
 How does `http.HandlerFunc` does its magic? First let's see what it is:
 
 ```go
@@ -183,7 +183,11 @@ Now let's build our own `http.HandlerFunc` from our `handler`, we had:
 type handler struct{}
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte(`{"hello":"world"}`))
+	fmt.Println(`{"hello":"handler.ServeHTTP"}`)
+}
+
+func handlerFunc(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(`{"hello":"handlerFunc"}`)
 }
 ```
 
@@ -193,12 +197,28 @@ a wee tweak, and the following work just as good as our old `handler`:
 type handler func(http.ResponseWriter, *http.Request)
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte(`{"hello":"world"}`))
+	fmt.Println(`{"hello":"handler.ServeHTTP"}`)
 }
 ```
 
-We are ignoring our receiver in the snippet above, as `h handler` is a
-`func(http.ResponseWriter, *http.Request)` we can do
+Now `handler` is a function, and any function with the same signature can be cast
+to `handler`:
+
+```go
+    // Both work, but they do not produce the same result
+	h2 = http.HandlerFunc(handlerFunc)
+	h3 = handler(handlerFunc)
+
+	// Output:
+	// {"hello":"handlerFunc"}
+	// {"hello":""handler.ServeHTTP"}
+```
+
+Run `go run demo/01/main.go` to see for yourself.
+
+Why? Simple, we are ignoring our receiver! We need to invoke the function 
+represented by our receiver `h`. Let's fix it.
+
 
 ```go
 type handler func(http.ResponseWriter, *http.Request)
@@ -208,17 +228,25 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-Finally, now any instance of `handler` is a `http.Handler`
+Finally, now our `handler` works just as `http.Handler` does!
 
 ```go
+	var h2, h3 http.Handler
 
+	h2 = http.HandlerFunc(handlerFunc)
+	h3 = handler(handlerFunc)
+
+	handlerFunc(nil, nil)
+	h2.ServeHTTP(nil, nil)
+	h3.ServeHTTP(nil, nil)
+
+	// Output:
+	// {"hello":"handlerFunc"}
+	// {"hello":"handlerFunc"}
+	// {"hello":""handlerFunc"}
 ```
 
-Also, a http middleware signature's, using it, will be `func (http.Handler) http.Handler`.
-Which is definitely a lot better to read and reason about.
-
-
-
+Try running `go run demo/02/main.go`
 
 TODO: middleware like func (...) func(http.Handler) http.Handler
 Another common need when defining a middleware is to pass some parameters to the middleware,
