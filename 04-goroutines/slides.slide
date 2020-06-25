@@ -1,0 +1,277 @@
+Goroutines
+
+* What is a goroutine?
+
+* Magic?
+
+.image imgs/gopherMagic.svg _ 500
+
+.caption _Gopher_ by [[https://github.com/MariaLetta/free-gophers-pack][MariaLetta]]
+
+* What is a goroutine?
+
+*tl;dr*: lightweight and really cheap thread-like thing
+
+We can think a goroutine as a lightweight and really cheap thread which stack grows and shrinks as needed.
+
+As they are cheap, a program can easily have hundreds, thousands, even hundreds of thousands of them.
+
+Goroutines are independently executed functions which are multiplexed onto threads. A gotourine might start in a thread, be suspended and resume on another.
+
+Also if a goroutine blocks (waiting for I/O, a network call or whatever), the other goroutines running in the same thread will not block.
+
+As an example, lets say we have a program with 10 threads, and 20 goroutines. 10 of them are blocked performing some I/O operation, the others will keep running.
+
+* Launching goroutines
+
+just say `go` to a function
+
+.play gohello.go
+
+* Launching goroutines
+
+In Go when the main function returns, the program exits. It does not wait the
+goroutines to finish.
+
+.play gohello.wait.go
+
+* Launching goroutines
+
+Of course we can also run inline functions to goroutines. Don't forget to invoke
+the inline function.
+
+.play goinlinehello.wait.go
+
+* goroutines gotcha: sharing loop variables
+
+Not quite what you expect
+
+.play forgotcha.go
+
+* goroutines gotcha: sharing loop variables: why?
+
+*tl;dr*:
+
+- the `i` variable is shared between the iterations
+- `i` scope is the for body as well as the closure body
+
+* goroutines gotcha: sharing loop variables: why?
+
+long answer:
+
+In the following for statement:
+
+   for [init statement] ; [ condition ] ; [ post statement ] { [for body] }
+
+- the variables in the `init` statement are reused in each interaction,
+
+- Go is lexically scoped using blocks,
+
+- The scope of a type identifier declared inside a function begins at the identifier in the _TypeSpec_ and ends at the end of the innermost containing block.
+
+check the [[https://golang.org/ref/spec#For_statements][Go specs]] for more details
+
+* Communication
+
+* Communication
+
+.image imgs/go-grpc-web.svg  _ 500
+.caption _Gopher_ by [[https://github.com/egonelbre/gophers][Egon Elbre]]
+
+* Communication
+
+Now we can have several goroutines executing we need them to communicate so
+we can coordinate them.
+
+From [[https://go-proverbs.github.io/][Go proverbs]]:
+
+_Don't_communicate_by_sharing_memory,_share_memory_by_communicating._
+
+* Channels
+
+.image imgs/channels.jpeg
+.caption image [[https://cdn.ednsquare.com/s/*/4f2353ca-674f-43df-a6e7-754e0af726d0.jpeg][source]]
+
+* Channels
+
+Channels are a tool to deliver information.
+
+We can think a channel is a pipe. Data comes in on one side and comes out on the other side.
+
+Channels are firs class values, it means they are treated just as any other type or variable. Also they are typed, data type transmitted in the channel is
+part os its type.
+
+* Using channels
+
+Channels are declared as `chan` `type`, where `type` is the data type which the
+channel will transport. Also they must be initialised by `make`.
+
+
+ // the long form
+ var ch chan int
+ ch = make(chan int)
+
+ // and the short
+ ch := make(chan int)
+
+To use them:
+
+  // to send data
+  ch <- 42
+
+  // to receive data
+  theAnswer <- ch
+
+  // channels can be closed
+  close(ch)
+
+
+* Channels and synchronisation
+
+Sending and receiving data from a channel are blocking operations, which gives us synchronisation.
+
+Back to the pipe analogy, in order to water flow through a pipe there must be a source in one side and the other side cannot be blocked.
+
+In a channel the data will only be sent, unblocking the sender, if there is someone waiting to receive.
+
+* Channels and synchronisation
+
+.play channels.go
+
+* Channels and synchronisation
+
+.code channels.go /start_Sleep_OMIT/,/end_Sleep_OMIT/ HLsleep
+The goroutine sending data takes a long time to send it, and we see the `fmt.Print(<-ch)` blocking until the data is received.
+
+* Channels and synchronisation
+
+If there is no one to receive the sender keeps waiting
+
+.play channels_sender_waiting.go /start_main OMIT/,/end_main OMIT/
+
+* Channels and synchronisation
+
+If there is no one to receive the sender keeps waiting
+
+.play channels_receiver_waiting.go /start_main OMIT/,/end_main OMIT/
+
+* Buffered channels
+
+The sending operation might be non-blocking (to some extend).
+
+A buffered channel will take in values without blocking the sender until the buffer reaches its capacity.
+
+A channels capacity is not part of its type, it's defined when initialising it:
+
+ // the long form
+ var ch chan int
+ ch = make(chan int, 1)
+
+ // and the short
+ ch := make(chan int, 1)
+
+* Buffered channels
+
+Non-blocking send:
+
+.play channels_buffered.go
+
+* Buffered channels
+
+If the buffer is full, sending operations are blocking:
+
+.play channels_buffered_full.go
+
+Keep in mind you cannot guarantee sending to a channel will not block. Better to consider every send will block.
+
+* A trick
+
+A send is a blocking operation, but some other goroutine can get blocked for us. Just be careful with that, if the channel is not drained, you might end up with a lot of blocked goroutines.
+
+.play channels_sending_trick.go /start_main OMIT/,/end_main OMIT/
+
+
+* Ranging over a channel
+
+Usually we want to continuously receive from a channel until there is nothing more to be received. To signal nothing else will be sent on a channel we close it.
+
+A for will range over a channel until it's fully drained. It means the channel is closed and there is no data in the channel's buffer.
+
+.play channels_range_close.go /start_main OMIT/,/end_main OMIT/
+
+* Ranging over a channel
+
+However if the channel is never closed and nothing else can be sent, we have a dead lock.
+
+.play channels_range_deadlock.go
+
+* A few "Patterns"
+
+* Select
+
+From [[https://golang.org/ref/spec#For_statements][Go specs]]:
+
+  A "select" statement chooses which of a set of possible send or receive operations will proceed.
+  It looks similar to a "switch" statement but with the cases all referring to communication
+  operations.
+
+	select {
+	case v1 := <-c1:
+		fmt.Println("received from c1:", v1)
+	case v2 := <-c2:
+		fmt.Println("received from c2:", v2)
+	case c42 <- 42:
+		fmt.Println("sent 43 to c42")
+	default: // optional
+		fmt.Println("no channels are ready to communicate")
+	}
+
+* Select
+The select statement will:
+
+- Evaluates all the channels.
+- Block until one case is ready. Either data can be sent or received.
+- If multiple cases are ready to proceed, select chooses one pseudo-randomly.
+- If there is a `default` clause it'll be immediately executed if all other cases are blocked.
+
+* Select
+
+.code select.go /start_declarations OMIT/,/end_declarations OMIT/
+
+* Select
+
+.play select.go /start_select OMIT/,/end_select OMIT/
+
+* Select
+
+.play select_default.go /start_select OMIT/,/end_select OMIT/
+
+* Select in a loop
+
+Usually we want to continuously evaluate the channels
+
+.play select_loop.go /start_select OMIT/,/end_select OMIT/
+
+* Select in a loop
+
+With a default clause:
+
+.play select_loop_default.go /start_select OMIT/,/end_select OMIT/
+
+* Select with timeout
+
+`time.After` returns a channel and after the given duration has elapsed it send the current time on the channel.
+
+We can use it to create a timeout:
+
+.play select_timeout.go /start_select OMIT/,/end_select OMIT/
+
+* Select with a global timeout
+
+.play select_global_timeout.go /start_select OMIT/,/end_select OMIT/
+
+* Done channel
+
+The same way we used `time.After` to notify us we should stop, we can use any channel for that.
+
+.play done_channel.go /start OMIT/,/end OMIT/
