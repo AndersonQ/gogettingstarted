@@ -3,7 +3,7 @@ package solution
 import (
 	"net/http"
 
-	"github.com/AndersonQ/gogettingstarted/03-http-middlewares/tracking"
+	"github.com/AndersonQ/gogettingstarted/02-http-middlewares/tracking"
 )
 
 func TrackingID(next http.Handler) http.Handler {
