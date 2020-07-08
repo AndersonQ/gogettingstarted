@@ -125,6 +125,18 @@ To use them:
   // channels can be closed
   close(ch)
 
+* Directed channels
+
+Channels can have directions, so they might only send or receive data
+
+.play channels_directed.go /start OMIT/,/end OMIT/
+
+* Directed channels
+
+Channels can have directions, so they might only send or receive data
+
+.play channels_directed_broken.go /start OMIT/,/end OMIT/
+
 
 * Channels and synchronisation
 
