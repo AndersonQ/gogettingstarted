@@ -6,7 +6,8 @@ import (
 )
 
 func main() {
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 5; i++ {
+		i := i // HL
 		go func() { fmt.Println(i) }()
 	}
 
