@@ -287,3 +287,145 @@ We can use it to create a timeout:
 The same way we used `time.After` to notify us we should stop, we can use any channel for that.
 
 .play done_channel.go /start OMIT/,/end OMIT/
+
+* Context.Err()
+
+From the docs:
+
+	// If Done is not yet closed, Err returns nil.
+	// If Done is closed, Err returns a non-nil error explaining why:
+	// Canceled if the context was canceled
+	// or DeadlineExceeded if the context's deadline passed.
+	// After Err returns a non-nil error, successive calls to Err return the same error.
+
+.code done_context_if.go /start_main OMIT/,/end_main OMIT/
+
+* Context.Err()
+
+.play done_context_if.go /start_slowComputation OMIT/,/end_slowComputation OMIT/
+
+* Context.Done() as timeout
+
+From the docs:
+
+	// Done returns a channel that's closed when work done on behalf of this
+	// context should be canceled. Done may return nil if this context can
+	// never be canceled. Successive calls to Done return the same value.
+	// The close of the Done channel may happen asynchronously,
+	// after the cancel function returns.
+
+
+.code done_context_select.go /start_main OMIT/,/end_main OMIT/
+
+* Context.Done() as timeout
+
+.play done_context_select.go /start_slowComputation OMIT/,/end_slowComputation OMIT/
+
+* Observer / Fan out
+
+* Observer / Fan out
+
+From Wikipedia:
+
+The observer pattern is a software design pattern in which an object, called the subject, maintains a list of its dependents, called observers, and notifies them automatically of any state changes, usually by calling one of their methods.
+
+.code fanout.go /start_observer OMIT/,/end_observer OMIT/
+
+* Observer / Fan out
+
+.code fanout.go /start_observable OMIT/,/end_observable OMIT/
+
+* Consumer <- Producer
+
+* Consumer <- Producer
+
+.code consumerproducer.go /start_p OMIT/,/end_p OMIT/
+.code consumerproducer.go /start_c OMIT/,/end_c OMIT/
+
+* Consumer <- Producer
+
+.play consumerproducer.go /start_main OMIT/,/end_main OMIT/
+
+* Semi real examples
+
+* Fan-in
+
+.image imgs/fanin.jpg
+
+* Fan-in
+
+Our service needs to fetch the user details for the users services for a list of users. Unfortunately the user service does not accept a batch request, so we'll fetch them concurrently.
+
+* Fan-in
+
+.code fanin.go /start_fetch OMIT/,/end_fetch OMIT/ HL_core
+
+* Fan-in
+
+.code fanin.go /start_fetch OMIT/,/end_fetch OMIT/ HL_ret
+
+* Fan-in
+
+.code fanin.go /start_main_fetch OMIT/,/end_main_fetch OMIT/
+
+.code fanin.go /start_main_collect OMIT/,/end_main_collect OMIT/
+
+* Fan-in
+
+.play fanin.go /start_main OMIT/,/end_main OMIT/
+
+* Fan-in with timeout
+
+* Fan-in with timeout
+
+Sometimes we cannot wait forever, so we'll give up waiting the slow requests
+
+.code fanintimeout.go /start_collect OMIT/,/end_collect OMIT/
+
+* Fan-in with timeout
+
+.play fanintimeout.go /start_main OMIT/,/end_main OMIT/
+
+* Graceful shutdown
+
+* Graceful shutdown
+
+We saw channels can be used for synchronisation. To implement a graceful shutdown we need to:
+
+- receive a shutdown signal
+- stop accepting requests
+- wait until all running process to finish
+- exit
+
+* Graceful shutdown
+
+.code gracefulshutdown.go  /start_gracefulShutdown OMIT/,/end_gracefulShutdown OMIT/
+
+* Graceful shutdown
+
+.play gracefulshutdown.go  /start_main OMIT/,/end_main OMIT/
+
+* Graceful shutdown with timeout
+
+* Graceful shutdown with timeout
+
+Again, we cannot wait forever. If it takes to long we'll exit anyway.
+
+.code gracefulshutdowntimeout.go  /start_shutdown1 OMIT/,/end_shutdown1 OMIT/
+
+* Graceful shutdown with timeout
+
+A goroutine will wait until either the shutdown is complete or it times out.
+If it times out, we return an error.
+.code gracefulshutdowntimeout.go  /start_shutdown_timeout OMIT/,/end_shutdown_timeout OMIT/
+
+* Graceful shutdown with timeout
+
+Now we really trigger each dependency's shutdown
+.code gracefulshutdowntimeout.go  /start_shutdown_wg OMIT/,/end_shutdown_wg OMIT/
+
+.code gracefulshutdowntimeout.go  /start_closeDependency OMIT/,/end_closeDependency OMIT/
+
+* Graceful shutdown with timout
+
+.play gracefulshutdowntimeout.go  /start_main OMIT/,/end_main OMIT/
