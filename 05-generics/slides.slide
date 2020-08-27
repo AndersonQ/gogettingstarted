@@ -146,10 +146,82 @@ links:
 
 - [[https://go.googlesource.com/go/+/refs/heads/dev.go2go/README.go2go.md][Translation tool (go tool go2go)]]
 
+* Hands on!
+
+* Installing from source
+
+- Get the source
+
+ git clone https://go.googlesource.com/go go2goroot
+ cd go2goroot
+ git checkout dev.go2go
+
+- Build it
+ cd src
+ ./make.bash
+
+* Preparing the environment
+
+- `GOPATH` and `GOROOT` need to be set.
+- Add `go2goroot/bin` to your path.
+- `go` and `gofmt` should invoke the freshly compiled commands.
+- to to easily set and revert it is also good.
+
+* go2gorc
+
+Thus saving the below on the file `~/.go2gorc`
+
+ export OLD_PATH=$PATH
+ export OLD_GOROOT=$GOROOT
+
+ export GO2GO=/path/to/your/go2goroot
+ export GO2PATH=$GO2GO/src/cmd/go2go/testdata/go2path
+ export PATH=$GO2GO/bin:$PATH
+ export GOROOT=$GO2GO
+ alias go="$GO2GO/bin/go"
+ alias gofmt="$GO2GO/bin/gofmt"
+
+then following can be set on your `rc` file
+
+ alias go2goenv='source ~/.go2gorc'
+ alias go2gounenv='export PATH=$OLD_PATH && GOROOT=$OLD_GOROOT && unalias go && unalias gofmt'
+
+* Build and running
+
+Use the `go2go` tool:
+
+ go tool go2go run x.go2
+
+ go tool go2go build x.go2
+
+* gopls + VSCode
+
+- Build gopls
+ GO111MODULE=on go get golang.org/x/tools/gopls@dev.go2go golang.org/x/tools@dev.go2go
+- Grab [[https://code.visualstudio.com/Download][VSCode]].
+- Install the [[https://github.com/golang/vscode-go/releases/download/20200722/go2go-0.0.0.vsix][go2-version]] of the VS Code Go extension.
+- Open VSCode and navigate to the Extensions View,
+- click on the '...' at the top right corner,
+- select "Install from VSIX" and select the downloaded .vsix,
+- on the extension view open the "Go (go2go)" "Extension settings",
+- then on the '...' at the top right click on "Show modified settings",
+- then under *[go]*, click on "Edit in settings.json"
+- ensure your settings are as [[https://github.com/golang/tools/blob/dev.go2go/gopls/doc/vscode.md#vscode][gopls docs]] recommend.
+
+* Code examples
+
+- https://github.com/ardanlabs/gotraining/tree/master/topics/go/generics
+
 * References
+
+- [[https://blog.golang.org/generics-next-step][The Next Step for Generics]]
 
 - [[https://go.googlesource.com/proposal/+/refs/heads/master/design/go2draft-type-parameters.md#type-lists-in-constraints][Draft proposal]]
 
-- [[https://groups.google.com/g/golang-nuts/c/7t-Q2vt60J8][14 Jul 2020 - Generics and parentheses]]
+- [[https://groups.google.com/g/golang-nuts/c/7t-Q2vt60J8][go-nuts: 14 Jul 2020 - Generics and parentheses]]
 
-- [[https://groups.google.com/g/golang-nuts/c/iAD0NBz3DYw/m/VcXSK55XAwAJ][21 Aug 2020 - Moving forward with the generics design draft]]
+- [[https://groups.google.com/g/golang-nuts/c/iAD0NBz3DYw/m/VcXSK55XAwAJ][go-nuts: 21 Aug 2020 - Moving forward with the generics design draft]]
+
+- [[https://github.com/golang/go/issues/39619][x/tools/gopls: working with the go2go generics prototype]]
+
+- [[https://github.com/golang/tools/blob/dev.go2go/gopls/doc/vscode.md][gopls VSCode docs]]
