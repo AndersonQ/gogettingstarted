@@ -1,0 +1,155 @@
+Generics in GO
+
+* habemus a draft proposal
+
+- it's a draft of a proposal
+- not finished
+- currently, being discussed with the community
+- already changed
+- will likely change again
+
+* Syntax overview
+
+* How it began
+
+- functions: `func F(type T)(p T) { ... }`
+- types: `type M(type T) []T`
+- constraints: `func F(type T Constraint)(p T) { ... }`
+- constraints are interfaces
+- interfaces might have a type list restricting the types allowed to implement it
+- using generic function/type require passing in type arguments
+- type arguments might omitted if it can be inferred
+- generic functions can only use the operations allowed by the type constraint
+
+* Interface with type list
+
+- Only types:
+
+ // SignedInteger is a type constraint that permits any
+ // signed integer type.
+
+ type SignedInteger interface {
+ 	type int, int8, int16, int32, int64
+ }
+
+- Methods and types:
+
+ // StringableSignedInteger is a type constraint that matches any
+ // type that is both
+ // 1) defined as a signed integer type;
+ // 2) has a String method.
+
+ type StringableSignedInteger interface {
+ 	type int, int8, int16, int32, int64
+ 	String() string
+ }
+
+.caption Examples from the [[https://go.googlesource.com/proposal/+/refs/heads/master/design/go2draft-type-parameters.md#type-lists-in-constraints][draft proposal]]
+
+* Why brackets ( )?
+
+* Curly braces { }
+
+They weren't really an option as they are already used for:
+
+- code blocks: `if true { do() }`
+- composite literals: `ns := []int{1, 2, 3}`
+- composite types: `struct{ name string }`
+and having them used for generics as well would cause syntactic problems.
+
+* Square brackets [ ]
+
+They alone is ambiguous when it comes to slices and arrays declarations,
+and a bit to index expressions as well.
+
+An examples:
+
+ type A [N] E
+
+what does it mean?
+
+an array declaration:
+
+ type A [N]E
+
+or a generic type declaration:
+
+ type A[N] E
+
+* Angle brackets < >
+
+They require unbounded parser look-ahead or type information in certain situations
+
+An examples:
+
+ a, b = w < x, y > (z)
+
+what does it mean?
+
+an assigment of a pair of expressions:
+
+ a, b = (w < x), (y > (z))
+
+or the invokation of a generic function returning two values:
+
+ a, b = (w<x, y>)(z)
+
+* It's living proposal
+
+* [ ] are back
+
+- Since the draft proposal was release there has been a lot of discussion and feedback.
+- Square brackets were brought back to the table.
+- As mentioned before, they alone are ambiguous.
+- With the `type` keyword it becomes clear.
+
+* New syntax
+
+- `any` is a predeclared type constrain, an alias for `interface{}`
+- functions: `func F[T any](p T) { ... }`
+- types: `type M[T any] []T`
+- constraints: `func F[T Constraint](p T) { ... }`
+- no more `[type T]`, use `[T any]`
+- constraints are interfaces
+- each type parameter must have a constraint
+- interfaces might have a type list restricting the types allowed to implement it
+- using generic function/type require passing in type arguments
+- type arguments might omitted if it can be inferred
+- generic functions can only use the operations allowed by the type constraint
+
+* Differences between using ( ) and [ ]
+
+
+	using ()                 using []
+
+
+	func f((T(int))          func f(T[int])
+
+	struct{ (T(int)) }       struct{ T[int] }
+
+	interface{ (T(int)) }    interface{ T[int] }
+
+	[](T(int)){}             []T[int]{}
+
+.caption Examples from [[https://groups.google.com/g/golang-nuts/c/7t-Q2vt60J8][Generics and parentheses]]
+
+* How to use it?
+
+- The `dev.go2go` branch contains the implementation of the draft proposal.
+- In order to use it, build go from source.
+- A new tool, `go2go`, was released to translate generic code into ordinary Go code.
+- A new go playground supporting generics was released.
+
+links:
+
+- [[https://go2goplay.golang.org/][The go2go Playground]]
+
+- [[https://go.googlesource.com/go/+/refs/heads/dev.go2go/README.go2go.md][Translation tool (go tool go2go)]]
+
+* References
+
+- [[https://go.googlesource.com/proposal/+/refs/heads/master/design/go2draft-type-parameters.md#type-lists-in-constraints][Draft proposal]]
+
+- [[https://groups.google.com/g/golang-nuts/c/7t-Q2vt60J8][14 Jul 2020 - Generics and parentheses]]
+
+- [[https://groups.google.com/g/golang-nuts/c/iAD0NBz3DYw/m/VcXSK55XAwAJ][21 Aug 2020 - Moving forward with the generics design draft]]
