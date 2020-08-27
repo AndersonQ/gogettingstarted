@@ -227,3 +227,5 @@ Use the `go2go` tool:
 - [[https://github.com/golang/tools/blob/dev.go2go/gopls/doc/vscode.md][gopls VSCode docs]]
 
 - [[https://go.googlesource.com/go/+/refs/heads/dev.go2go/README.go2go.md][dev.go2go branch]]
+
+- [[https://docs.google.com/forms/d/e/1FAIpQLSekT4pVAd0hknKJdmkPbauKBdADKvOxkR3N04YwmInGedHe9w/viewform][Go Generics Feedback form]]
