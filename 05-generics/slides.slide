@@ -225,3 +225,5 @@ Use the `go2go` tool:
 - [[https://github.com/golang/go/issues/39619][x/tools/gopls: working with the go2go generics prototype]]
 
 - [[https://github.com/golang/tools/blob/dev.go2go/gopls/doc/vscode.md][gopls VSCode docs]]
+
+- [[https://go.googlesource.com/go/+/refs/heads/dev.go2go/README.go2go.md][dev.go2go branch]]
